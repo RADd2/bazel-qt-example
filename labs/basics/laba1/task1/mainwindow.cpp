@@ -1,169 +1,168 @@
 #include "mainwindow.h"
-#include "./ui_mainwindow.h"
-
-#include <qDebug>
-#include <map>
-#include <vector>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QListWidget>
+#include <QSpinBox>
+#include <QLabel>
+#include <QComboBox>
+#include <QPushButton>
+#include <QProgressBar>
+#include <QGroupBox>
+#include <QLineEdit>
 #include <QMessageBox>
-
-// std::map<QBrush, int> color_index = {
-//     {QBrush(Qt::gray), 0},
-//     {QBrush(Qt::yellow), 1},
-//     {QBrush(Qt::green), 2}
-// }
 
 std::vector<QListWidgetItem*> previous_items;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
-    ui->groupBox->setVisible(false);
+    centralWidget = new QWidget(this);
+    setCentralWidget(centralWidget);
+
+    listWidget = new QListWidget(this);
+    spinBox = new QSpinBox(this);
+    progressBar = new QProgressBar(this);
+    progressBar_2 = new QProgressBar(this);
+    groupBox = new QGroupBox("Информация о билете", this);
+    name = new QLabel("Билет: ", this);
+    number = new QLabel("Номер: ", this);
+    comboBox = new QComboBox(this);
+    lineEdit = new QLineEdit(this);
+    QPushButton *randomButton = new QPushButton("Выбрать случайный", this);
+    QPushButton *prevButton = new QPushButton("Предыдущий билет", this);
+
+    comboBox->addItems({"Серый", "Желтый", "Зеленый"});
+    groupBox->setVisible(false);
+
+    // Компоновка
+    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->addWidget(spinBox);
+    mainLayout->addWidget(progressBar);
+    mainLayout->addWidget(progressBar_2);
+    mainLayout->addWidget(listWidget);
+    mainLayout->addWidget(groupBox);
+    mainLayout->addWidget(randomButton);
+    mainLayout->addWidget(prevButton);
+
+    QVBoxLayout *groupBoxLayout = new QVBoxLayout(groupBox);
+    groupBoxLayout->addWidget(name);
+    groupBoxLayout->addWidget(number);
+    groupBoxLayout->addWidget(comboBox);
+    groupBoxLayout->addWidget(lineEdit);
+
+    // Подключение сигналов и слотов (новый синтаксис)
+    connect(spinBox, &QSpinBox::valueChanged, this, &MainWindow::on_spinBox_valueChanged);
+    connect(listWidget, &QListWidget::itemDoubleClicked, this, &MainWindow::on_listWidget_itemDoubleClicked);
+    connect(listWidget, &QListWidget::itemClicked, this, &MainWindow::on_listWidget_itemClicked);
+    connect(comboBox, &QComboBox::currentIndexChanged, this, &MainWindow::on_comboBox_currentIndexChanged);
+    connect(lineEdit, &QLineEdit::editingFinished, this, &MainWindow::on_lineEdit_editingFinished);
+    connect(randomButton, &QPushButton::clicked, this, &MainWindow::on_pushButton_clicked);
+    connect(prevButton, &QPushButton::clicked, this, &MainWindow::on_pushButton_2_clicked);
 }
 
-MainWindow::~MainWindow()
-{
-    delete ui;
-}
+MainWindow::~MainWindow() {}
 
 void MainWindow::on_spinBox_valueChanged(int arg1)
 {
-    ui->listWidget->clear();
-    previous_items.resize(0);
-    ui->progressBar->setValue(0);
-    ui->progressBar->setMaximum(arg1);
-    ui->progressBar_2->setValue(0);
-    ui->progressBar_2->setMaximum(arg1);
-    ui->groupBox->setVisible(false);
+    listWidget->clear();
+    previous_items.clear();
+    progressBar->setValue(0);
+    progressBar->setMaximum(arg1);
+    progressBar_2->setValue(0);
+    progressBar_2->setMaximum(arg1);
+    groupBox->setVisible(false);
     for (int i = 0; i < arg1; ++i) {
-        ui->listWidget->addItem("Билет " + QString::number(i + 1));
-        ui->listWidget->item(i)->setForeground(Qt::gray);
+        QListWidgetItem *item = new QListWidgetItem("Билет " + QString::number(i + 1));
+        item->setForeground(Qt::gray);
+        listWidget->addItem(item);
     }
 }
 
 
 void MainWindow::on_listWidget_itemDoubleClicked(QListWidgetItem *item)
 {
-    if (item->foreground() == Qt::gray || item->foreground() == Qt::yellow) {
-        if (item->foreground() == Qt::gray) {
-            ui->progressBar->setValue(ui->progressBar->value() + 1);
-        }
-        ui->progressBar_2->setValue(ui->progressBar->value() + 1);
+    if (item->foreground() == Qt::gray) {
+        progressBar->setValue(progressBar->value() + 1);
+        progressBar_2->setValue(progressBar_2->value() + 1);
+        item->setForeground(Qt::green);
+    } else if (item->foreground() == Qt::yellow) {
+        progressBar_2->setValue(progressBar_2->value() + 1);
         item->setForeground(Qt::green);
     } else {
-        ui->progressBar_2->setValue(ui->progressBar->value() - 1);
+        progressBar_2->setValue(progressBar_2->value() - 1);
         item->setForeground(Qt::yellow);
     }
 }
 
 void MainWindow::on_listWidget_itemClicked(QListWidgetItem *item)
 {
-    ui->name->setText("Билет " + QString::number(ui->listWidget->currentRow() + 1));
-    ui->number->setText(QString::number(ui->listWidget->currentRow() + 1));
-
-    if (item->foreground() == Qt::gray) {
-        ui->comboBox->setCurrentIndex(0);
-    }
-    if (item->foreground() == Qt::yellow) {
-        ui->comboBox->setCurrentIndex(1);
-    }
-    if (item->foreground() == Qt::green) {
-        ui->comboBox->setCurrentIndex(2);
-    }
-
-    ui->groupBox->setVisible(true);
-
+    name->setText(item->text());
+    number->setText(QString::number(listWidget->row(item) + 1));
+    groupBox->setVisible(true);
 }
-
-
 
 void MainWindow::on_comboBox_currentIndexChanged(int index)
 {
-    QListWidgetItem* current_item = ui->listWidget->currentItem();
-    QBrush current_color = ui->listWidget->currentItem()->foreground();
-    QBrush color;
+    QListWidgetItem *currentItem = listWidget->currentItem();
+    if (!currentItem) return;
+
+    QBrush newColor;
     if (index == 0) {
-        if (current_color == Qt::green) {
-            ui->progressBar_2->setValue(ui->progressBar->value() - 1);
+        if (currentItem->foreground() != Qt::gray) {
+            progressBar->setValue(progressBar->value() - 1);
         }
-        color = Qt::gray;
-        ui->progressBar->setValue(ui->progressBar->value() - 1);
+        newColor = Qt::gray;
+    } else if (index == 1) {
+        newColor = Qt::yellow;
+    } else {
+        if (currentItem->foreground() != Qt::green) {
+            progressBar_2->setValue(progressBar_2->value() + 1);
+        }
+        newColor = Qt::green;
     }
-    if (index == 1) {
-        if (current_color == Qt::gray) {
-            ui->progressBar->setValue(ui->progressBar->value() + 1);
-        }
-        if (current_color == Qt::green) {
-            ui->progressBar_2->setValue(ui->progressBar->value() - 1);
-        }
-        color = Qt::yellow;
-    }
-    if (index == 2) {
-        if (current_color == Qt::gray) {
-            ui->progressBar->setValue(ui->progressBar->value() + 1);
-        }
-        ui->progressBar_2->setValue(ui->progressBar->value() + 1);
-        color = Qt::green;
-    }
-    current_item->setForeground(color);
+    currentItem->setForeground(newColor);
 }
 
 
 void MainWindow::on_lineEdit_editingFinished()
 {
-    if (ui->lineEdit->text().length() != 0) {
-        ui->name->setText(ui->lineEdit->text());
-        ui->listWidget->currentItem()->setText(ui->name->text());
+    if (lineEdit->text().length() != 0) {
+        name->setText(lineEdit->text());
+        listWidget->currentItem()->setText(name->text());
     }
 }
 
 
 void MainWindow::on_pushButton_clicked()
-{int n = ui->listWidget->count();
-    int count_no_green = 0;
-
-    for (int i = 0; i < n; ++i) {
-        QListWidgetItem* item = ui->listWidget->item(i);
-        if (item->foreground().color() != Qt::green) {
-            count_no_green++;
+{
+    std::vector<QListWidgetItem*> available;
+    for (int i = 0; i < listWidget->count(); ++i) {
+        QListWidgetItem *item = listWidget->item(i);
+        if (item->foreground() != Qt::green) {
+            available.push_back(item);
         }
     }
 
-    if (count_no_green == 0) {
+    if (available.empty()) {
         QMessageBox::information(this, "", "Все билеты выучены!!");
         return;
     }
 
-    int rand_next = std::rand() % count_no_green;
-
-    QListWidgetItem* item = nullptr;
-    int p = 0;
-    for (int i = 0; i < n; ++i) {
-        QListWidgetItem* currentItem = ui->listWidget->item(i);
-        if (currentItem->foreground().color() != Qt::green) {
-            if (p == rand_next) {
-                item = currentItem;
-                break;
-            }
-            ++p;
-        }
-    }
-
-    previous_items.push_back(ui->listWidget->currentItem());
-    ui->listWidget->setCurrentItem(item);
-    on_listWidget_itemClicked(item);
+    QListWidgetItem *randomItem = available[rand() % available.size()];
+    previous_items.push_back(listWidget->currentItem());
+    listWidget->setCurrentItem(randomItem);
+    on_listWidget_itemClicked(randomItem);
 }
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    if (previous_items.size() == 0) {
+    if (previous_items.empty()) {
         QMessageBox::information(this, "", "Нет предыдущих билетов");
         return;
     }
-    QListWidgetItem* item = previous_items[previous_items.size() - 1];
-    ui->listWidget->setCurrentItem(item);
-    on_listWidget_itemClicked(item);
-    previous_items.erase(previous_items.end() - 1);
-}
 
+    QListWidgetItem *item = previous_items.back();
+    previous_items.pop_back();
+    listWidget->setCurrentItem(item);
+    on_listWidget_itemClicked(item);
+}
