@@ -31,7 +31,6 @@ public slots:
     }
 
 private:
-    Ui::MainWindow *ui;
     QComboBox* mode;
     Controller* controller;
 };

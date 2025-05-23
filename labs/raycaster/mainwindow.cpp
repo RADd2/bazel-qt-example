@@ -1,5 +1,4 @@
 #include "mainwindow.h"
-#include "./ui_mainwindow.h"
 
 #include <vector>
 #include <QPointF>
@@ -8,7 +7,6 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
     , mode(new QComboBox(this))
     , controller(new Controller)
 {
